@@ -12,6 +12,7 @@
 @using Blazor3D.Objects;
 @using Blazor3D.Scenes;
 @using Blazor3D.Settings;
+@using Gitblazor.UI.Styles;
 @using GraphQL.Client.Http;
 @using GraphQL.Client.Serializer.Newtonsoft;
 @using GraphQL;
@@ -50,7 +51,7 @@
         <h3>Activity</h3>
         <div class="h-1 w-full bg-gradient-to-r from-violet-950 to-slate-200"></div>
         <div>
-            <Viewer @ref="View3D1" Scene=@scene/>
+            <Viewer @ref="View3D1" Scene=@scene />
         </div>
     </div>
 </div>
@@ -74,10 +75,9 @@
                 {
                     Intensity = 0.9f
                 });
-            await TryGetUser();
 
             var contributions = await GetContributions();
-            contributions = contributions.Where(x => x.contributionDays.Select(x => x.date).Any(x => x.Year == 2022)).ToList();
+            contributions = contributions.Where(x => x.contributionDays.Select(x => x.date).Any(x => x.Year == 2023)).ToList();
             float weekNr = 0;
             foreach (var week in contributions)
             {
@@ -131,27 +131,6 @@
     public void StateChangeEvent(object sender, EventArgs args)
     {
         StateHasChanged();
-    }
-
-    async Task TryGetUser()
-    {
-        var token = state.GetToken();
-
-        using (var client = new HttpClient())
-        {
-            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token); ;
-
-            var result = await client.GetAsync(" https://api.github.com/user");
-
-            if (!result.IsSuccessStatusCode)
-            {
-                Snackbar.Add("Reactor meltdown is imminent", Severity.Error);
-                state.Reset();
-                Navigation.NavigateTo("/login");
-            }
-
-            state.SetUser(await result.Content.ReadFromJsonAsync<UserData>());
-        }
     }
 
     async Task GetUserRepos()
@@ -213,51 +192,15 @@
 
     public string GetColor(int number)
     {
-        switch (number)
+        switch (number < ColorPallet.PrimaryColors.Length)
         {
-            case 0:
+            case true:
                 {
-                    return "#f3e8ff";
-                }
-            case 1:
-                {
-                    return "#e9d5ff";
-                }
-            case 2:
-                {
-                    return "#d8b4fe";
-                }
-            case 3:
-                {
-                    return "#c084fc";
-                }
-            case 4:
-                {
-                    return "#a855f7";
-                }
-            case 5:
-                {
-                    return "#9333ea";
-                }
-            case 6:
-                {
-                    return "#7e22ce";
-                }
-            case 7:
-                {
-                    return "#6b21a8";
-                }
-            case 8:
-                {
-                    return "#581c87";
-                }
-            case 9:
-                {
-                    return "#3b0764";
+                    return ColorPallet.PrimaryColors[number];
                 }
             default:
                 {
-                    return "#3b0764";
+                    return ColorPallet.PrimaryColors[ColorPallet.PrimaryColors.Length];
                 }
         }
     }

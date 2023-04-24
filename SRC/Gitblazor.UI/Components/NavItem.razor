@@ -24,16 +24,12 @@
     }
 }
 
-<NavLink class="flex flex-col w-full content-center text-gray-400 font-medium rounded-sm text-l" href=@Route Match="NavLinkMatch.All">
-    <div class="px-5 py-4" >
+<NavLink class="flex flex-col w-full content-center text-violet-700 font-medium rounded-sm text-l" href=@Route Match="NavLinkMatch.All">
+    <div class="px-5 py-4">
         @if (!string.IsNullOrWhiteSpace(IconName))
         {
             <i style="font-size:large" class=@IconName />
         }
     </div>
-    @if (Navigation.Uri.Contains(Route))
-    {
-        <div class="mb-0 lg:mlb-2 bg-gradient-to-r from-blue-600 to-cyan-600 h-1 shadow-2xl"></div>
-    }
 </NavLink>
 

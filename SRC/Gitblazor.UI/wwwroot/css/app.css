@@ -528,6 +528,10 @@ video {
   position: absolute;
 }
 
+.relative {
+  position: relative;
+}
+
 .bottom-0 {
   bottom: 0px;
 }
@@ -572,17 +576,20 @@ video {
   margin-bottom: 0.5rem;
 }
 
-.me-2 {
-  -webkit-margin-end: 0.5rem;
-          margin-inline-end: 0.5rem;
-}
-
 .mt-14 {
   margin-top: 3.5rem;
 }
 
-.mt-4 {
-  margin-top: 1rem;
+.mr-12 {
+  margin-right: 3rem;
+}
+
+.mr-14 {
+  margin-right: 3.5rem;
+}
+
+.ml-14 {
+  margin-left: 3.5rem;
 }
 
 .block {
@@ -641,6 +648,14 @@ video {
 
 .h-screen {
   height: 100vh;
+}
+
+.h-2 {
+  height: 0.5rem;
+}
+
+.h-4 {
+  height: 1rem;
 }
 
 .w-12 {
@@ -838,6 +853,10 @@ video {
   background-image: linear-gradient(to right, var(--tw-gradient-stops));
 }
 
+.bg-gradient-to-t {
+  background-image: linear-gradient(to top, var(--tw-gradient-stops));
+}
+
 .from-blue-600 {
   --tw-gradient-from: #2563eb var(--tw-gradient-from-position);
   --tw-gradient-from-position:  ;
@@ -854,6 +873,14 @@ video {
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
 }
 
+.from-violet-700 {
+  --tw-gradient-from: #6d28d9 var(--tw-gradient-from-position);
+  --tw-gradient-from-position:  ;
+  --tw-gradient-to: rgb(109 40 217 / 0)  var(--tw-gradient-from-position);
+  --tw-gradient-to-position:  ;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+
 .to-cyan-600 {
   --tw-gradient-to: #0891b2 var(--tw-gradient-to-position);
   --tw-gradient-to-position:  ;
@@ -866,6 +893,11 @@ video {
 
 .to-violet-800 {
   --tw-gradient-to: #5b21b6 var(--tw-gradient-to-position);
+  --tw-gradient-to-position:  ;
+}
+
+.to-gray-50 {
+  --tw-gradient-to: #f9fafb var(--tw-gradient-to-position);
   --tw-gradient-to-position:  ;
 }
 
@@ -972,6 +1004,16 @@ video {
 .text-white {
   --tw-text-opacity: 1;
   color: rgb(255 255 255 / var(--tw-text-opacity));
+}
+
+.text-gray-50 {
+  --tw-text-opacity: 1;
+  color: rgb(249 250 251 / var(--tw-text-opacity));
+}
+
+.text-violet-700 {
+  --tw-text-opacity: 1;
+  color: rgb(109 40 217 / var(--tw-text-opacity));
 }
 
 .opacity-70 {

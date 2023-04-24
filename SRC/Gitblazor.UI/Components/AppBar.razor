@@ -12,11 +12,17 @@
     {
         StateHasChanged();
     }
-
-
 }
 
-<div class="h-14 flex fixed w-screen flex-row justify-end pl-4 pr-4 bg-zinc-50">
+<div class="h-14 flex fixed w-screen flex-row justify-between pl-4 pr-4 bg-zinc-50">
+    <div class="ml-14 flex flex-row">
+        @foreach (var item in SidebarNavigation.NavigationItems)
+        {
+            <div >
+                <NavItem Text=@item.Name Route=@item.Route IconName=@item.Icon />
+            </div>
+        }
+    </div>
     <div class="flex items-center ">
         <img src="Images/logo.svg" class="w-16 h-16 mb-1" alt="My Happy SVG" />
     </div>
