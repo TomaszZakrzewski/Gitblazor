@@ -1,0 +1,135 @@
+﻿@page "/login"
+@using Blazor3D.Cameras;
+@using Blazor3D.Enums;
+@using Blazor3D.Geometires;
+@using Blazor3D.Lights;
+@using Blazor3D.Materials;
+@using Blazor3D.Maths;
+@using Blazor3D.Objects;
+@using Blazor3D.Scenes;
+@using Blazor3D.Settings;
+@inject NavigationManager Navigation;
+@inject State state;
+
+<div class="h-screen w-screen flex justify-center">
+    <div class="bg-gray-100 bg-opacity-90 w-96 h-64 p-5 flex flex-col items-center absolute top-0 right-0 bottom-0 left-0 m-auto rounded">
+        <img src="Images/logo_login.svg" class="w-20 h-20" alt="My Happy SVG" />
+        <EditForm class="w-full" Model="model" OnSubmit="onSubmit">
+            <div class="mb-10">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="Token">Access token</label>
+                <InputText @bind-Value=model.Token class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" type="password" />
+            </div>
+            <div class="flex justify-center">
+                <button class="bg-violet-600 text-white font-bold py-2 px-4 rounded" type="submit">Zatwierdz</button>
+            </div>
+        </EditForm>
+    </div>
+    <Viewer @ref="View3D1" Scene=@scene Camera="@controls" />
+</div>
+
+
+@code {
+    protected override void OnInitialized()
+    {
+        if (state.IsLoggedIn)
+            Navigation.NavigateTo("home");
+
+        base.OnInitialized();
+    }
+    private Viewer View3D1 = null!;
+    private Guid objGuid;
+    private ViewerSettings settings = new ViewerSettings()
+        {
+            ContainerId = "example1",
+        };
+
+    private Scene scene = new Scene();
+    private PerspectiveCamera controls = new PerspectiveCamera();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            scene.BackGroundColor = "#fffff";
+            controls.AnimateRotationSettings = new AnimateRotationSettings
+                {
+                    AnimateRotation = true,
+                    StopAnimationOnOrbitControlMove = false,
+                };
+            scene.Add(new AmbientLight()
+                {
+                    Intensity = 0.5f
+                });
+            scene.Add(new PointLight()
+                {
+                    Intensity = 0.2f,
+                    Position = new Vector3
+                    {
+                        X = 0,
+                        Y = 0,
+                        Z = 0
+                    },
+                    Color = "#ffffff"
+                });
+
+
+            var colorArr = new string[] {
+                                        "#d8b4fe",
+                                        "#c084fc",
+                                        "#a855f7",
+                                        "#9333ea",
+                                        "#7e22ce",
+                                        "#6b21a8",
+                                        "#581c87",
+                                        "#3b0764",
+                                        "#3b0764"};
+
+            for (int i = 0; i < 100; i++)
+            {
+                var randomNum = new Random();
+                scene.Add(new Mesh()
+                    {
+                        Geometry = new BoxGeometry(),
+                        Position = new Vector3
+                        {
+                            X = randomNum.Next(-15, 15),
+                            Y = randomNum.Next(-15, 15),
+                            Z = randomNum.Next(-15, 15),
+                        },
+                        Rotation = new Euler
+                        {
+                            X = randomNum.Next(-30, 30),
+                            Y = randomNum.Next(-30, 30),
+                            Z = randomNum.Next(-30, 30),
+                        },
+                        Material = new MeshStandardMaterial
+                        {
+                            Roughness = 0.4f,
+                            Color = colorArr[randomNum.Next(8)]
+                        }
+                    });
+            }
+
+        }
+        catch (Exception ex)
+        {
+            throw;
+        }
+
+        await base.OnInitializedAsync();
+    }
+
+    public class TokenModel
+    {
+        public string Token { get; set; }
+    }
+
+    public TokenModel model = new();
+
+    public void onSubmit()
+    {
+        state.IsLoggedIn = true;
+        state.SetToken(model.Token);
+        Navigation.NavigateTo("home");
+    }
+}

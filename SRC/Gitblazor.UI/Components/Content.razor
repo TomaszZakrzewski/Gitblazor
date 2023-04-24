@@ -1,0 +1,13 @@
+﻿@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+}
+
+<main class="lg:ml-16 mt-14 bg-zinc-200 flex-grow text-black h-full bg-slate-100">
+    <div class="p-5 h-full">
+        @ChildContent
+    </div>
+</main>
+
+

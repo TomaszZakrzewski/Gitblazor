@@ -1,0 +1,264 @@
+﻿@page "/"
+@page "/home"
+@inject NavigationManager Navigation;
+@inject State state;
+@inject ISnackbar Snackbar;
+@using Blazor3D.Cameras;
+@using Blazor3D.Controls;
+@using Blazor3D.Geometires;
+@using Blazor3D.Lights;
+@using Blazor3D.Materials;
+@using Blazor3D.Maths;
+@using Blazor3D.Objects;
+@using Blazor3D.Scenes;
+@using Blazor3D.Settings;
+@using GraphQL.Client.Http;
+@using GraphQL.Client.Serializer.Newtonsoft;
+@using GraphQL;
+
+<div class="flex flex-col gap-2">
+    <div class="flex flex-col md:flex-row text-black gap-2">
+        <div class="basis-1/4">
+            <h3>Profile</h3>
+            <div class="h-1 w-full bg-gradient-to-r from-violet-950 to-slate-200"></div>
+            <div class="flex justify-center m-5">
+                <img src=@state.user.avatar_url class="w-36 h-36 rounded-full" alt="My Happy SVG" />
+            </div>
+            <div class="bg-gradient-to-b from-violet-950 to-violet-800 p-4">
+                <h3 class="font-bold text-gray-100">@state.user.name</h3>
+                <h3 class="font-regular text-gray-100 opacity-70">@state.user.login</h3>
+                <div>
+                </div>
+            </div>
+        </div>
+        <div class="basis-3/4">
+            <h3>Repositories</h3>
+            <div class="h-1 w-full bg-gradient-to-r from-violet-950 to-slate-200 mb-2"></div>
+            <div class="flex w-full flex-wrap overflow-auto h-64">
+                @foreach (var model in repositories)
+                {
+                    <div class="basis-1/2 p-2 text-gray-100">
+                        <div class="bg-gradient-to-b from-violet-950 to-violet-800 p-4">
+                            @model.name
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="basis-full">
+        <h3>Activity</h3>
+        <div class="h-1 w-full bg-gradient-to-r from-violet-950 to-slate-200"></div>
+        <div>
+            <Viewer @ref="View3D1" Scene=@scene/>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    private Viewer View3D1 = null!;
+    private Guid objGuid;
+    private ViewerSettings settings = new ViewerSettings()
+        {
+            ContainerId = "example1",
+        };
+
+    private Scene scene = new Scene();
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            scene.BackGroundColor = "#e4e4e7";
+            scene.Add(new AmbientLight()
+                {
+                    Intensity = 0.9f
+                });
+            await TryGetUser();
+
+            var contributions = await GetContributions();
+            contributions = contributions.Where(x => x.contributionDays.Select(x => x.date).Any(x => x.Year == 2022)).ToList();
+            float weekNr = 0;
+            foreach (var week in contributions)
+            {
+                float dayNr = 0;
+                foreach (var day in week.contributionDays)
+                {
+                    var mesh = new Mesh
+                        {
+                            Material = new Blazor3D.Materials.MeshStandardMaterial
+                            {
+                                Color = GetColor(day.contributionCount)
+                            },
+                            Geometry = new BoxGeometry
+                            {
+                                Depth = 2,
+                                Width = 2,
+                                Height = (float)day.contributionCount,
+                            },
+                            Position = new Vector3
+                            {
+                                X = weekNr,
+                                Y = (float)day.contributionCount / (float)2,
+                                Z = dayNr
+                            }
+                        };
+                    scene.Add(mesh);
+                    dayNr += 2.1f;
+                }
+                weekNr += 2.1f;
+            }
+            await View3D1.UpdateScene();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            throw;
+        }
+
+        await base.OnInitializedAsync();
+    }
+
+    public List<Repository> repositories = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await GetUserRepos();
+
+        base.OnAfterRenderAsync(firstRender);
+    }
+
+    public void StateChangeEvent(object sender, EventArgs args)
+    {
+        StateHasChanged();
+    }
+
+    async Task TryGetUser()
+    {
+        var token = state.GetToken();
+
+        using (var client = new HttpClient())
+        {
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token); ;
+
+            var result = await client.GetAsync(" https://api.github.com/user");
+
+            if (!result.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Reactor meltdown is imminent", Severity.Error);
+                state.Reset();
+                Navigation.NavigateTo("/login");
+            }
+
+            state.SetUser(await result.Content.ReadFromJsonAsync<UserData>());
+        }
+    }
+
+    async Task GetUserRepos()
+    {
+        var token = state.GetToken();
+
+        using (var client = new HttpClient())
+        {
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token); ;
+
+            var result = await client.GetAsync(" https://api.github.com/user/repos");
+
+            if (!result.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Reactor meltdown is imminent", Severity.Error);
+                state.Reset();
+                Navigation.NavigateTo("/login");
+            }
+
+            repositories = await result.Content.ReadFromJsonAsync<List<Repository>>();
+        }
+    }
+
+    async Task<List<Week>> GetContributions()
+    {
+        var token = state.GetToken();
+
+        var graphQLClient = new GraphQLHttpClient("https://api.github.com/graphql", new NewtonsoftJsonSerializer());
+        graphQLClient.HttpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        var userRequest = new GraphQLRequest
+            {
+                Query = @"
+                 query {
+                 user(login: @USERNAME) {
+                   contributionsCollection {
+                contributionCalendar {
+                  totalContributions
+                  weeks {
+                    contributionDays {
+                      color
+                      contributionCount
+                      date
+                      weekday
+                    }
+                    firstDay
+                    }
+                  }
+                }
+                }
+                }
+                ".Replace("@USERNAME", $"\"{state.user.login}\"")
+            };
+
+        var result = await graphQLClient.SendQueryAsync<Data>(userRequest);
+        var dt = result.Data;
+
+        return dt.user.ContributionsCollection.contributionCalendar.weeks;
+    }
+
+    public string GetColor(int number)
+    {
+        switch (number)
+        {
+            case 0:
+                {
+                    return "#f3e8ff";
+                }
+            case 1:
+                {
+                    return "#e9d5ff";
+                }
+            case 2:
+                {
+                    return "#d8b4fe";
+                }
+            case 3:
+                {
+                    return "#c084fc";
+                }
+            case 4:
+                {
+                    return "#a855f7";
+                }
+            case 5:
+                {
+                    return "#9333ea";
+                }
+            case 6:
+                {
+                    return "#7e22ce";
+                }
+            case 7:
+                {
+                    return "#6b21a8";
+                }
+            case 8:
+                {
+                    return "#581c87";
+                }
+            case 9:
+                {
+                    return "#3b0764";
+                }
+            default:
+                {
+                    return "#3b0764";
+                }
+        }
+    }
+}

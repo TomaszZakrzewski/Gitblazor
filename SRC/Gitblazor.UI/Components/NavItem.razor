@@ -1,0 +1,39 @@
+﻿@code {
+    @inject NavigationManager Navigation
+
+    [Parameter]
+    public string Text { get; set; }
+    [Parameter]
+    public string Route { get; set; }
+    [Parameter]
+    public string IconName { get; set; }
+
+    protected override void OnInitialized()
+    {
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object sender, LocationChangedEventArgs e)
+    {
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
+}
+
+<NavLink class="flex flex-col w-full content-center text-gray-400 font-medium rounded-sm text-l" href=@Route Match="NavLinkMatch.All">
+    <div class="px-5 py-4" >
+        @if (!string.IsNullOrWhiteSpace(IconName))
+        {
+            <i style="font-size:large" class=@IconName />
+        }
+    </div>
+    @if (Navigation.Uri.Contains(Route))
+    {
+        <div class="mb-0 lg:mlb-2 bg-gradient-to-r from-blue-600 to-cyan-600 h-1 shadow-2xl"></div>
+    }
+</NavLink>
+

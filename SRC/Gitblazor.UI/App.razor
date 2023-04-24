@@ -1,0 +1,29 @@
+﻿@using Gitblazor.UI.Shared;
+@inject NavigationManager Navigation;
+@inject State state;
+
+<MudThemeProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+<Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        @if (!state.IsLoggedIn)
+        {
+            <Login />
+        }
+        else
+        {
+            <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        }
+    </Found>
+    <NotFound>
+        @{
+            Console.WriteLine();
+        }
+        <PageTitle>Not found</PageTitle>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <p role="alert">Sorry, there's nothing at this address.</p>
+        </LayoutView>
+    </NotFound>
+</Router>
