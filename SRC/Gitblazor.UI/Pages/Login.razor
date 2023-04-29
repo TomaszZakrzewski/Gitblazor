@@ -10,6 +10,7 @@
 @using Blazor3D.Settings;
 @using Gitblazor.UI.Models.Authentication;
 @inject NavigationManager Navigation;
+@inject ISnackbar SnackbarService
 @inject IGithubService githubService;
 @inject State state;
 
@@ -113,6 +114,10 @@
             state.IsLoggedIn = true;
             state.SetToken(model.Token);
             Navigation.NavigateTo(Routes.Home);
+        }
+        else
+        {
+            SnackbarService.Add("The token you provided is invalid", Severity.Error);
         }
     }
 }

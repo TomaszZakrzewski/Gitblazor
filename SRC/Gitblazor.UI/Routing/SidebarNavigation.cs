@@ -8,7 +8,7 @@ namespace Gitblazor.UI.Routing
         public static List<NavigationItem> NavigationItems = new()
         {
             new NavigationItem { Name = "Habits", Route = Routes.Home, Icon="fa-solid fa-house"},
-            new NavigationItem { Name = "ToDo", Route = "/counter", Icon="fa-regular fa-folder-open" }
+            new NavigationItem { Name = "Repositories", Route = "/repositories", Icon="fa-regular fa-folder-open" }
         };
     }
     public record NavigationItem

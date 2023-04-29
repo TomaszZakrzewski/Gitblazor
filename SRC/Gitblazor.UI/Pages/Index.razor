@@ -19,27 +19,28 @@
 
 <div class="flex flex-col gap-2">
     <div class="flex flex-col md:flex-row text-black gap-2">
-        <div class="basis-1/4">
-            <h3>Profile</h3>
-            <div class="h-1 w-full bg-gradient-to-r from-violet-950 to-slate-200"></div>
-            <div class="flex justify-center m-5">
-                <img src=@state.user.avatar_url class="w-36 h-36 rounded-full" alt="My Happy SVG" />
-            </div>
-            <div class="bg-gradient-to-b from-violet-950 to-violet-800 p-4">
-                <h3 class="font-bold text-gray-100">@state.user.name</h3>
-                <h3 class="font-regular text-gray-100 opacity-70">@state.user.login</h3>
-                <div>
+        <div class="basis-1/4 bg-gray-50">
+            <h3 class="font-extrabold text-base">Profile</h3>
+            <div class="h-1 w-full bg-gradient-to-r from-violet-700 to-gray-50"></div>
+            <div class="flex flex-col h-full">
+                <div class="flex justify-center m-5">
+                    <img src=@state.user.avatar_url class="w-36 h-36 rounded-full" alt="My Happy SVG" />
+                </div>
+                <div class="bg-gradient-to-b from-violet-700 to-violet-800 p-2 h-full">
+                    <h3 class="font-bold text-gray-100">@state.user.name</h3>
+                    <h3 class="font-regular text-gray-100 opacity-70">@state.user.login</h3>
+
                 </div>
             </div>
         </div>
-        <div class="basis-3/4">
-            <h3>Repositories</h3>
-            <div class="h-1 w-full bg-gradient-to-r from-violet-950 to-slate-200 mb-2"></div>
+        <div class="basis-3/4 bg-gray-50">
+            <h3 class="font-extrabold text-base">Contributions</h3>
+            <div class="h-1 w-full bg-gradient-to-r from-violet-700 to-gray-50 mb-2"></div>
             <div class="flex w-full flex-wrap overflow-auto h-64">
                 @foreach (var model in repositories)
                 {
                     <div class="basis-1/2 p-2 text-gray-100">
-                        <div class="bg-gradient-to-b from-violet-950 to-violet-800 p-4">
+                        <div class="bg-gradient-to-b from-violet-700 to-violet-800 p-4">
                             @model.name
                         </div>
                     </div>
@@ -47,39 +48,68 @@
             </div>
         </div>
     </div>
-    <div class="basis-full">
-        <h3>Activity</h3>
-        <div class="h-1 w-full bg-gradient-to-r from-violet-950 to-slate-200"></div>
-        <div>
-            <Viewer @ref="View3D1" Scene=@scene />
+    <div class="basis-full bg-gray-50">
+        <h3 class="font-extrabold text-base">Activity</h3>
+        <div class="h-1 w-full bg-gradient-to-r from-violet-700 to-gray-50"></div>
+        <div class="flex flex-row">
+            <div class="w-1/2">
+                <Viewer @ref="View3D1" Scene=@scene Camera="@controls" />
+            </div>
+            <div>
+                <MudTimeline>
+                    @foreach (var year in years)
+                    {
+                        <button @onclick="async () =>await  OnSelectYear(year)">
+                            <MudTimelineItem Color="year == selectedYear ? Color.Primary : Color.Default">
+                                <MudText>@year</MudText>
+                            </MudTimelineItem>
+                        </button>
+                    }
+                </MudTimeline>
+            </div>
         </div>
     </div>
 </div>
 
 @code {
-
+    public List<Repository> repositories = new();
+    public int[] years = Array.Empty<int>();
+    private List<Week> currentContributions = new List<Week>();
+    private List<Week> overallContributions = new List<Week>();
+    private PerspectiveCamera controls = new PerspectiveCamera();
     private Viewer View3D1 = null!;
     private Guid objGuid;
+    private int selectedYear = DateTime.UtcNow.Year;
     private ViewerSettings settings = new ViewerSettings()
         {
             ContainerId = "example1",
         };
 
-    private Scene scene = new Scene();
-    protected override async Task OnInitializedAsync()
+    public async Task Show()
     {
+        await View3D1.ShowCurrentCameraInfo();
+    }
+    private Scene scene = new Scene();
+
+    public async Task OnSelectYear(int year)
+    {
+        selectedYear = year;
+        currentContributions = overallContributions.Where(x => x.contributionDays.Select(x => x.date).Any(x => x.Year == selectedYear)).ToList();
+
+        float weekNr = 0;
+        scene = new Scene();
+        controls.LookAt = new Vector3(19, 1, 3);
+        controls.Position = new Vector3(19, 16, 22);
+
+        scene.BackGroundColor = "#f9fafb";
+        scene.Add(new AmbientLight()
+            {
+                Intensity = 0.8f,
+            });
         try
         {
-            scene.BackGroundColor = "#e4e4e7";
-            scene.Add(new AmbientLight()
-                {
-                    Intensity = 0.9f
-                });
 
-            var contributions = await GetContributions();
-            contributions = contributions.Where(x => x.contributionDays.Select(x => x.date).Any(x => x.Year == 2023)).ToList();
-            float weekNr = 0;
-            foreach (var week in contributions)
+            foreach (var week in currentContributions)
             {
                 float dayNr = 0;
                 foreach (var day in week.contributionDays)
@@ -88,7 +118,8 @@
                         {
                             Material = new Blazor3D.Materials.MeshStandardMaterial
                             {
-                                Color = GetColor(day.contributionCount)
+                                Color = GetColor(day.contributionCount),
+                                Roughness = 0f,
                             },
                             Geometry = new BoxGeometry
                             {
@@ -104,11 +135,75 @@
                             }
                         };
                     scene.Add(mesh);
-                    dayNr += 2.1f;
+                    dayNr += 2.4f;
                 }
-                weekNr += 2.1f;
+                weekNr += 2.4f;
             }
+
+
+            controls.LookAt = new Vector3(currentContributions.Count + 3, 1, 3);
+            controls.Position = new Vector3(currentContributions.Count + 3, currentContributions.Count - 2, 22);
+
             await View3D1.UpdateScene();
+            await View3D1.UpdateCamera(controls);
+        }
+        catch (Exception ex)
+        {
+            throw;
+        }
+        await View3D1.UpdateScene();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            scene.BackGroundColor = "#f9fafb";
+            scene.Add(new AmbientLight()
+                {
+                    Intensity = 0.8f,
+                });
+
+
+            overallContributions = await GetContributions();
+            currentContributions = overallContributions.Where(x => x.contributionDays.Select(x => x.date).Any(x => x.Year == selectedYear)).ToList();
+            float weekNr = 0;
+            foreach (var week in currentContributions)
+            {
+                float dayNr = 0;
+                foreach (var day in week.contributionDays)
+                {
+                    var mesh = new Mesh
+                        {
+                            Material = new Blazor3D.Materials.MeshStandardMaterial
+                            {
+                                Color = GetColor(day.contributionCount),
+                                Roughness = 0f,
+                            },
+                            Geometry = new BoxGeometry
+                            {
+                                Depth = 2,
+                                Width = 2,
+                                Height = (float)day.contributionCount,
+                            },
+                            Position = new Vector3
+                            {
+                                X = weekNr,
+                                Y = (float)day.contributionCount / (float)2,
+                                Z = dayNr
+                            }
+                        };
+                    scene.Add(mesh);
+                    dayNr += 2.4f;
+                }
+                weekNr += 2.4f;
+            }
+
+            controls.LookAt = new Vector3(currentContributions.Count + 3, 1, 3);
+            controls.Position = new Vector3(currentContributions.Count+3, currentContributions.Count-2, 22);
+
+            await View3D1.UpdateScene();
+            await View3D1.UpdateCamera(controls);
             StateHasChanged();
         }
         catch (Exception ex)
@@ -118,8 +213,6 @@
 
         await base.OnInitializedAsync();
     }
-
-    public List<Repository> repositories = new();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -166,6 +259,7 @@
                  query {
                  user(login: @USERNAME) {
                    contributionsCollection {
+                contributionYears
                 contributionCalendar {
                   totalContributions
                   weeks {
@@ -186,7 +280,7 @@
 
         var result = await graphQLClient.SendQueryAsync<Data>(userRequest);
         var dt = result.Data;
-
+        years = dt.user.ContributionsCollection.ContributionYears;
         return dt.user.ContributionsCollection.contributionCalendar.weeks;
     }
 
@@ -200,7 +294,7 @@
                 }
             default:
                 {
-                    return ColorPallet.PrimaryColors[ColorPallet.PrimaryColors.Length];
+                    return ColorPallet.PrimaryColors[ColorPallet.PrimaryColors.Length - 1];
                 }
         }
     }

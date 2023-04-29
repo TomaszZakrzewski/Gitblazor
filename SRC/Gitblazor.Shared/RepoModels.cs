@@ -23,6 +23,7 @@ namespace Gitblazor.Shared.Models
 
     public class ContributionsCollection
     {
+        public int[] ContributionYears { get; set; }
         public ContributionCalendar contributionCalendar { get; set; }
     }
 
