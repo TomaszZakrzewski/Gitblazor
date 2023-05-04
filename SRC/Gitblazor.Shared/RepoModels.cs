@@ -15,6 +15,7 @@ namespace Gitblazor.Shared.Models
 
     public class ContributionDay
     {
+        public Guid Id { get; set; } = Guid.NewGuid();
         public string color { get; set; }
         public int contributionCount { get; set; }
         public DateTime date { get; set; }
