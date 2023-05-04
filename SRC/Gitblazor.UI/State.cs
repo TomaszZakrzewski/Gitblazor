@@ -5,7 +5,7 @@ namespace Gitblazor.UI
     public class State
     {
 
-        public event EventHandler<EventArgs> StateChanged;
+        public event EventHandler<EventArgs>? StateChanged;
         public UserData user = new();
         private static string Token { get; set; }
         public bool IsLoggedIn { get; set; }
@@ -28,7 +28,7 @@ namespace Gitblazor.UI
         public void SetUser(UserData user)
         {
             this.user = user;
-            StateChanged.Invoke(this, new EventArgs());
+            StateChanged?.Invoke(this, new EventArgs());
         }
     }
 }

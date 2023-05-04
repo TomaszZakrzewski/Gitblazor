@@ -5,6 +5,7 @@
 @inject ISnackbar Snackbar;
 @using Blazor3D.Cameras;
 @using Blazor3D.Controls;
+@using Blazor3D.Events;
 @using Blazor3D.Geometires;
 @using Blazor3D.Lights;
 @using Blazor3D.Materials;
@@ -12,33 +13,35 @@
 @using Blazor3D.Objects;
 @using Blazor3D.Scenes;
 @using Blazor3D.Settings;
+@using Gitblazor.UI.Styles;
 @using GraphQL.Client.Http;
 @using GraphQL.Client.Serializer.Newtonsoft;
 @using GraphQL;
 
 <div class="flex flex-col gap-2">
     <div class="flex flex-col md:flex-row text-black gap-2">
-        <div class="basis-1/4">
-            <h3>Profile</h3>
-            <div class="h-1 w-full bg-gradient-to-r from-violet-950 to-slate-200"></div>
-            <div class="flex justify-center m-5">
-                <img src=@state.user.avatar_url class="w-36 h-36 rounded-full" alt="My Happy SVG" />
-            </div>
-            <div class="bg-gradient-to-b from-violet-950 to-violet-800 p-4">
-                <h3 class="font-bold text-gray-100">@state.user.name</h3>
-                <h3 class="font-regular text-gray-100 opacity-70">@state.user.login</h3>
-                <div>
+        <div class="basis-1/4 bg-gray-50">
+            <h3 class="font-extrabold text-base">Profile</h3>
+            <div class="h-1 w-full bg-gradient-to-r from-violet-700 to-gray-50"></div>
+            <div class="flex flex-col h-full">
+                <div class="flex justify-center m-5">
+                    <img src=@state.user.avatar_url class="w-36 h-36 rounded-full" alt="My Happy SVG" />
+                </div>
+                <div class="bg-gradient-to-b from-violet-700 to-violet-800 p-2 h-full">
+                    <h3 class="font-bold text-gray-100">@state.user.name</h3>
+                    <h3 class="font-regular text-gray-100 opacity-70">@state.user.login</h3>
+
                 </div>
             </div>
         </div>
-        <div class="basis-3/4">
-            <h3>Repositories</h3>
-            <div class="h-1 w-full bg-gradient-to-r from-violet-950 to-slate-200 mb-2"></div>
+        <div class="basis-3/4 bg-gray-50">
+            <h3 class="font-extrabold text-base">Contributions</h3>
+            <div class="h-1 w-full bg-gradient-to-r from-violet-700 to-gray-50 mb-2"></div>
             <div class="flex w-full flex-wrap overflow-auto h-64">
                 @foreach (var model in repositories)
                 {
                     <div class="basis-1/2 p-2 text-gray-100">
-                        <div class="bg-gradient-to-b from-violet-950 to-violet-800 p-4">
+                        <div class="bg-gradient-to-b from-violet-700 to-violet-800 p-4">
                             @model.name
                         </div>
                     </div>
@@ -46,40 +49,70 @@
             </div>
         </div>
     </div>
-    <div class="basis-full">
-        <h3>Activity</h3>
-        <div class="h-1 w-full bg-gradient-to-r from-violet-950 to-slate-200"></div>
-        <div>
-            <Viewer @ref="View3D1" Scene=@scene/>
+    <div class="basis-full bg-gray-50">
+        <h3 class="font-extrabold text-base">Activity</h3>
+        <div class="h-1 w-full bg-gradient-to-r from-violet-700 to-gray-50"></div>
+        <div class="flex flex-row">
+            <div class="w-3/4">
+                <Viewer @ref="View3D1" ViewerSettings="@settings" Scene=@scene Camera="@controls" />
+            </div>
+            <div>
+                <MudTimeline SelectedIndexChanged="OnSelectYear">
+                    @foreach (var year in years)
+                    {
+                        <MudTimelineItem Color="year == selectedYear ? Color.Primary : Color.Default">
+                            <MudText>@year</MudText>
+                        </MudTimelineItem>
+                    }
+                </MudTimeline>
+                <p>Contributions on Day</p>
+                <p>@currentDay.contributionCount</p>
+            </div>
         </div>
     </div>
 </div>
 
 @code {
-
+    public List<Repository> repositories = new();
+    public int[] years = Array.Empty<int>();
+    private List<Week> currentContributions = new List<Week>();
+    private List<Week> overallContributions = new List<Week>();
+    private PerspectiveCamera controls = new PerspectiveCamera();
     private Viewer View3D1 = null!;
-    private Guid objGuid;
+    List<Guid> KnownGuids = new List<Guid>();
+
+    private ContributionDay currentDay = new ContributionDay();
+    private int selectedYear = DateTime.UtcNow.Year;
     private ViewerSettings settings = new ViewerSettings()
         {
             ContainerId = "example1",
+            CanSelect = true,
+            CanSelectHelpers = false
         };
 
     private Scene scene = new Scene();
-    protected override async Task OnInitializedAsync()
+
+    public async Task OnSelectYear(int year)
     {
+        KnownGuids = new List<Guid>();
+        selectedYear = years[year];
+        overallContributions = await GetContributionCallendar();
+        currentContributions = overallContributions.Where(x => x.contributionDays.Select(x => x.date).Any(x => x.Year == selectedYear)).ToList();
+
+        float weekNr = 0;
+        scene = new Scene();
+        controls.LookAt = new Vector3(19, 1, 3);
+        controls.Position = new Vector3(19, 16, 22);
+
+        scene.BackGroundColor = "#f9fafb";
+        scene.Add(new AmbientLight()
+            {
+                Intensity = 0.8f,
+            });
         try
         {
-            scene.BackGroundColor = "#e4e4e7";
-            scene.Add(new AmbientLight()
-                {
-                    Intensity = 0.9f
-                });
-            await TryGetUser();
 
-            var contributions = await GetContributions();
-            contributions = contributions.Where(x => x.contributionDays.Select(x => x.date).Any(x => x.Year == 2022)).ToList();
-            float weekNr = 0;
-            foreach (var week in contributions)
+            foreach (var week in currentContributions)
             {
                 float dayNr = 0;
                 foreach (var day in week.contributionDays)
@@ -88,7 +121,77 @@
                         {
                             Material = new Blazor3D.Materials.MeshStandardMaterial
                             {
-                                Color = GetColor(day.contributionCount)
+                                Color = GetColor(day.contributionCount),
+                                Roughness = 0f,
+                            },
+                            Geometry = new BoxGeometry
+                            {
+                                Depth = 2,
+                                Width = 2,
+                                Height = (float)day.contributionCount,
+                            },
+                            Position = new Vector3
+                            {
+                                X = weekNr,
+                                Y = (float)day.contributionCount / (float)2,
+                                Z = dayNr
+                            }
+                        };
+
+                    scene.Add(mesh);
+                    day.Id = mesh.Uuid;
+                    KnownGuids.Add(mesh.Uuid);
+                    dayNr += 2.4f;
+                }
+                weekNr += 2.4f;
+            }
+
+
+            controls.LookAt = new Vector3(currentContributions.Count + 3, 1, 3);
+            controls.Position = new Vector3(currentContributions.Count + 3, currentContributions.Count - 2, 22);
+            await View3D1.UpdateScene();
+            await View3D1.UpdateCamera(controls);
+        }
+        catch (Exception ex)
+        {
+            throw;
+        }
+        await View3D1.UpdateScene();
+    }
+
+    private void SelectObject(Object3DArgs e)
+    {
+        currentDay = currentContributions.SelectMany(x => x.contributionDays).FirstOrDefault(x => x.Id == e.UUID);
+        var contains = KnownGuids.Contains(e.UUID);
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        KnownGuids = new List<Guid>();
+        try
+        {
+            scene.BackGroundColor = "#f9fafb";
+            scene.Add(new AmbientLight()
+                {
+                    Intensity = 0.8f,
+                });
+
+
+            overallContributions = await GetContributionCallendar();
+            currentContributions = overallContributions.Where(x => x.contributionDays.Select(x => x.date).Any(x => x.Year == selectedYear)).ToList();
+            float weekNr = 0;
+            foreach (var week in currentContributions)
+            {
+                float dayNr = 0;
+                foreach (var day in week.contributionDays)
+                {
+                    var mesh = new Mesh
+                        {
+                            Material = new Blazor3D.Materials.MeshStandardMaterial
+                            {
+                                Color = GetColor(day.contributionCount),
+                                Roughness = 0f,
                             },
                             Geometry = new BoxGeometry
                             {
@@ -104,11 +207,18 @@
                             }
                         };
                     scene.Add(mesh);
-                    dayNr += 2.1f;
+                    day.Id = mesh.Uuid;
+                    KnownGuids.Add(mesh.Uuid);
+                    dayNr += 2.4f;
                 }
-                weekNr += 2.1f;
+                weekNr += 2.4f;
             }
+
+            controls.LookAt = new Vector3(currentContributions.Count + 3, 1, 3);
+            controls.Position = new Vector3(currentContributions.Count + 3, currentContributions.Count - 2, 22);
+
             await View3D1.UpdateScene();
+            await View3D1.UpdateCamera(controls);
             StateHasChanged();
         }
         catch (Exception ex)
@@ -119,11 +229,14 @@
         await base.OnInitializedAsync();
     }
 
-    public List<Repository> repositories = new();
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await GetUserRepos();
+
+        if (firstRender)
+        {
+            View3D1.ObjectSelected += SelectObject;
+        }
 
         base.OnAfterRenderAsync(firstRender);
     }
@@ -131,27 +244,6 @@
     public void StateChangeEvent(object sender, EventArgs args)
     {
         StateHasChanged();
-    }
-
-    async Task TryGetUser()
-    {
-        var token = state.GetToken();
-
-        using (var client = new HttpClient())
-        {
-            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token); ;
-
-            var result = await client.GetAsync(" https://api.github.com/user");
-
-            if (!result.IsSuccessStatusCode)
-            {
-                Snackbar.Add("Reactor meltdown is imminent", Severity.Error);
-                state.Reset();
-                Navigation.NavigateTo("/login");
-            }
-
-            state.SetUser(await result.Content.ReadFromJsonAsync<UserData>());
-        }
     }
 
     async Task GetUserRepos()
@@ -175,7 +267,7 @@
         }
     }
 
-    async Task<List<Week>> GetContributions()
+    async Task<List<Week>> GetContributionCallendar()
     {
         var token = state.GetToken();
 
@@ -186,7 +278,8 @@
                 Query = @"
                  query {
                  user(login: @USERNAME) {
-                   contributionsCollection {
+                   contributionsCollection(from: @FROM, to: @TO) {
+                contributionYears
                 contributionCalendar {
                   totalContributions
                   weeks {
@@ -202,62 +295,27 @@
                 }
                 }
                 }
-                ".Replace("@USERNAME", $"\"{state.user.login}\"")
+                ".Replace("@USERNAME", $"\"{state.user.login}\"").Replace("@FROM", $"\"{new DateTime(selectedYear, 1, 1).ToString("s") + "Z"}\"").Replace("@TO", $"\"{new DateTime(selectedYear + 1, 1, 1).AddDays(-1).ToString("s") + "Z"}\"")
+
             };
 
         var result = await graphQLClient.SendQueryAsync<Data>(userRequest);
         var dt = result.Data;
-
+        years = dt.user.ContributionsCollection.ContributionYears;
         return dt.user.ContributionsCollection.contributionCalendar.weeks;
     }
 
     public string GetColor(int number)
     {
-        switch (number)
+        switch (number < ColorPallet.PrimaryColors.Length)
         {
-            case 0:
+            case true:
                 {
-                    return "#f3e8ff";
-                }
-            case 1:
-                {
-                    return "#e9d5ff";
-                }
-            case 2:
-                {
-                    return "#d8b4fe";
-                }
-            case 3:
-                {
-                    return "#c084fc";
-                }
-            case 4:
-                {
-                    return "#a855f7";
-                }
-            case 5:
-                {
-                    return "#9333ea";
-                }
-            case 6:
-                {
-                    return "#7e22ce";
-                }
-            case 7:
-                {
-                    return "#6b21a8";
-                }
-            case 8:
-                {
-                    return "#581c87";
-                }
-            case 9:
-                {
-                    return "#3b0764";
+                    return ColorPallet.PrimaryColors[number];
                 }
             default:
                 {
-                    return "#3b0764";
+                    return ColorPallet.PrimaryColors[ColorPallet.PrimaryColors.Length - 1];
                 }
         }
     }

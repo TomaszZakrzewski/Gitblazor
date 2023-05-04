@@ -8,7 +8,10 @@
 @using Blazor3D.Objects;
 @using Blazor3D.Scenes;
 @using Blazor3D.Settings;
+@using Gitblazor.UI.Models.Authentication;
 @inject NavigationManager Navigation;
+@inject ISnackbar SnackbarService
+@inject IGithubService githubService;
 @inject State state;
 
 <div class="h-screen w-screen flex justify-center">
@@ -16,7 +19,7 @@
         <img src="Images/logo_login.svg" class="w-20 h-20" alt="My Happy SVG" />
         <EditForm class="w-full" Model="model" OnSubmit="onSubmit">
             <div class="mb-10">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="Token">Access token</label>
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="Token">Authentication Token</label>
                 <InputText @bind-Value=model.Token class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" type="password" />
             </div>
             <div class="flex justify-center">
@@ -24,112 +27,97 @@
             </div>
         </EditForm>
     </div>
-    <Viewer @ref="View3D1" Scene=@scene Camera="@controls" />
+    <Viewer @ref="view3D1" Scene=@scene Camera="@controls" />
 </div>
 
 
 @code {
-    protected override void OnInitialized()
+    private PerspectiveCamera controls;
+    private ViewerSettings settings;
+    private TokenDto model = new();
+    private Viewer view3D1 = null!;
+    private Scene scene;
+
+    public Login()
     {
-        if (state.IsLoggedIn)
-            Navigation.NavigateTo("home");
-
-        base.OnInitialized();
+        controls = new PerspectiveCamera();
+        settings = new ViewerSettings();
+        scene = new Scene();
     }
-    private Viewer View3D1 = null!;
-    private Guid objGuid;
-    private ViewerSettings settings = new ViewerSettings()
-        {
-            ContainerId = "example1",
-        };
-
-    private Scene scene = new Scene();
-    private PerspectiveCamera controls = new PerspectiveCamera();
 
     protected override async Task OnInitializedAsync()
     {
-        try
-        {
-            scene.BackGroundColor = "#fffff";
-            controls.AnimateRotationSettings = new AnimateRotationSettings
-                {
-                    AnimateRotation = true,
-                    StopAnimationOnOrbitControlMove = false,
-                };
-            scene.Add(new AmbientLight()
-                {
-                    Intensity = 0.5f
-                });
-            scene.Add(new PointLight()
-                {
-                    Intensity = 0.2f,
-                    Position = new Vector3
-                    {
-                        X = 0,
-                        Y = 0,
-                        Z = 0
-                    },
-                    Color = "#ffffff"
-                });
+        if (state.IsLoggedIn)
+            Navigation.NavigateTo(Routes.Home);
 
+        settings.ContainerId = "loginPageBackground";
+        controls.AnimateRotationSettings.AnimateRotation = true;
+        controls.AnimateRotationSettings.StopAnimationOnOrbitControlMove = false;
 
-            var colorArr = new string[] {
-                                        "#d8b4fe",
-                                        "#c084fc",
-                                        "#a855f7",
-                                        "#9333ea",
-                                        "#7e22ce",
-                                        "#6b21a8",
-                                        "#581c87",
-                                        "#3b0764",
-                                        "#3b0764"};
-
-            for (int i = 0; i < 100; i++)
-            {
-                var randomNum = new Random();
-                scene.Add(new Mesh()
-                    {
-                        Geometry = new BoxGeometry(),
-                        Position = new Vector3
-                        {
-                            X = randomNum.Next(-15, 15),
-                            Y = randomNum.Next(-15, 15),
-                            Z = randomNum.Next(-15, 15),
-                        },
-                        Rotation = new Euler
-                        {
-                            X = randomNum.Next(-30, 30),
-                            Y = randomNum.Next(-30, 30),
-                            Z = randomNum.Next(-30, 30),
-                        },
-                        Material = new MeshStandardMaterial
-                        {
-                            Roughness = 0.4f,
-                            Color = colorArr[randomNum.Next(8)]
-                        }
-                    });
-            }
-
-        }
-        catch (Exception ex)
-        {
-            throw;
-        }
+        BuildBackgoundGeometry();
 
         await base.OnInitializedAsync();
     }
 
-    public class TokenModel
+    private void BuildBackgoundGeometry()
     {
-        public string Token { get; set; }
+        scene.BackGroundColor = ColorPallet.White;
+        scene.Add(new AmbientLight()
+            {
+                Intensity = 0.5f
+            });
+        scene.Add(new PointLight()
+            {
+                Intensity = 0.2f,
+                Position = new Vector3
+                {
+                    X = 0,
+                    Y = 0,
+                    Z = 0
+                },
+                Color = ColorPallet.White
+            });
+
+        var randomNum = new Random();
+        for (int i = 0; i < 100; i++)
+        {
+            scene.Add(new Mesh()
+                {
+                    Geometry = new BoxGeometry(),
+                    Position = new Vector3
+                    {
+                        X = randomNum.Next(-15, 15),
+                        Y = randomNum.Next(-15, 15),
+                        Z = randomNum.Next(-15, 15),
+                    },
+                    Rotation = new Euler
+                    {
+                        X = randomNum.Next(-30, 30),
+                        Y = randomNum.Next(-30, 30),
+                        Z = randomNum.Next(-30, 30),
+                    },
+                    Material = new MeshStandardMaterial
+                    {
+                        Roughness = 0.4f,
+                        Color = ColorPallet.PrimaryColors[randomNum.Next(8)]
+                    }
+                });
+        }
     }
 
-    public TokenModel model = new();
-
-    public void onSubmit()
+    public async Task onSubmit()
     {
-        state.IsLoggedIn = true;
-        state.SetToken(model.Token);
-        Navigation.NavigateTo("home");
+        var result = await githubService.LoginUser(model.Token);
+
+        if (result)
+        {
+            state.IsLoggedIn = true;
+            state.SetToken(model.Token);
+            Navigation.NavigateTo(Routes.Home);
+        }
+        else
+        {
+            SnackbarService.Add("The token you provided is invalid", Severity.Error);
+        }
     }
 }
