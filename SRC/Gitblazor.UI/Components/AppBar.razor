@@ -1,18 +1,6 @@
 ﻿@inject State state;
 
-@code {
-    protected override void OnInitialized()
-    {
-        state.StateChanged += StateChangeEvent;
 
-        base.OnInitialized();
-    }
-
-    public void StateChangeEvent(object sender, EventArgs args)
-    {
-        StateHasChanged();
-    }
-}
 
 <div class="h-14 flex fixed w-screen flex-row justify-between pl-4 pr-4 bg-zinc-50">
     <div class="ml-14 flex flex-row">

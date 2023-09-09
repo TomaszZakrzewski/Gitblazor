@@ -20,38 +20,30 @@
 
 <div class="flex flex-col gap-2">
     <div class="flex flex-col md:flex-row text-black gap-2">
-        <div class="basis-1/4 bg-gray-50">
-            <h3 class="font-extrabold text-base">Profile</h3>
-            <div class="h-1 w-full bg-gradient-to-r from-violet-700 to-gray-50"></div>
-            <div class="flex flex-col h-full">
+        <DashboardCard Title="Profile" WidthClass="basis-1/4" HeightClass="h-64" >
+            <div class="flex flex-col h-full p-2 w-full">
                 <div class="flex justify-center m-5">
                     <img src=@state.user.avatar_url class="w-36 h-36 rounded-full" alt="My Happy SVG" />
                 </div>
-                <div class="bg-gradient-to-b from-violet-700 to-violet-800 p-2 h-full">
+                <div class="bg-gradient-to-b from-violet-700 to-violet-800 p-2 h-full ">
                     <h3 class="font-bold text-gray-100">@state.user.name</h3>
                     <h3 class="font-regular text-gray-100 opacity-70">@state.user.login</h3>
 
                 </div>
             </div>
-        </div>
-        <div class="basis-3/4 bg-gray-50">
-            <h3 class="font-extrabold text-base">Repositories</h3>
-            <div class="h-1 w-full bg-gradient-to-r from-violet-700 to-gray-50 mb-2"></div>
-            <div class="flex w-full flex-wrap overflow-auto h-64">
-                @foreach (var model in repositories)
-                {
-                    <div class="basis-1/2 p-2 text-gray-100">
-                        <div class="bg-gradient-to-b from-violet-700 to-violet-800 p-4">
-                            @model.name
-                        </div>
+        </DashboardCard>
+        <DashboardCard Title="Repositories" WidthClass="basis-3/4" HeightClass="h-64">
+            @foreach (var model in repositories)
+            {
+                <div class="basis-1/2 p-1 text-gray-100">
+                    <div class="bg-gradient-to-b from-violet-700 to-violet-800 p-4">
+                        @model.name
                     </div>
-                }
-            </div>
-        </div>
+                </div>
+            }
+        </DashboardCard>
     </div>
-    <div class="basis-full bg-gray-50">
-        <h3 class="font-extrabold text-base">Activity</h3>
-        <div class="h-1 w-full bg-gradient-to-r from-violet-700 to-gray-50"></div>
+    <DashboardCard Title="Activity" WidthClass="basis-full" HeightClass="h-max">
         <div class="flex flex-row">
             <div class="w-3/5">
                 <Viewer @ref="View3D1" ViewerSettings="@settings" Scene=@scene Camera="@controls" />
@@ -69,7 +61,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </DashboardCard>
 </div>
 
 @code {
